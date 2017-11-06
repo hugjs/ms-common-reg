@@ -4,20 +4,25 @@
             "app":"",
             "app_version":"",
             "service":"",
-            "service_version":""
+            "service_version":"",
+            "weight":""
         },
         "storage": {
             "name":"zk",
             "options":{
                 "zk":{
-                    "url":"192.168.8.3:2181,192.168.8.3:2182"
+                    "url":"192.168.8.3:2181,192.168.8.3:2182",
+                    "timeout":3000
                 },
                 "root":"/TEST_MICRO"
             }
         },
         // server configurations
         "server":{
-            "port":20002
+            "protocal":"http",
+            "host":"",
+            "port":20002,
+            "root":""
         },
         // log configurations
         "log":{
@@ -26,6 +31,11 @@
             },
             "categories": { "default": { "appenders": ["console"], "level": "debug" } }
         }
+    },
+    "reg_svc":{
+        "host":"",
+        "port":"",
+        "path":""
     },
     // system paths
     "path":{
