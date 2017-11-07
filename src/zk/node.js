@@ -4,7 +4,7 @@
 var config = require('config')
 var noop = function(){}
 var path = require('path');
-const logger = require('@log4js-node/log4js-api').getLogger(path.basename(module.id));
+const logger = require('@log4js-node/log4js-api').getLogger("zk.node");
 var Events  = require('events');
 var Util    = require('util');
 
@@ -30,7 +30,9 @@ const SERVICE_STATUS = {
     STANDBY : 1,       // 服务就绪，手动设置为disable的时候也是这个状态
     ENABLE : 2,        // 激活
   };
-  
+
+var rootInCfg = config.get("service_node.storage.options.root")
+const ROOT = rootInCfg?rootInCfg:"/MICRO/services";
 
 /**
  * 服务节点对象，如果已经存在就直接返回
@@ -54,7 +56,7 @@ exports.init = async function(options){
  * 
  * @param {Object} options 
  */
-async function Node(options) {
+function Node(options) {
     Events.EventEmitter.call(this);
     // 数据校验
     var keys = ['app','app_version','service','service_version'];
@@ -64,11 +66,12 @@ async function Node(options) {
     this._id = cuid();
     this._status = SERVICE_STATUS.INIT;
     this._url = "";
-    this._app = config.get("service_node.base.app");
-    this._app_version = config.get("service_node.base.app_version");
-    this._service = config.get("service_node.base.service");
-    this._version = config.get("service_node.base.service_version");
+    this._app = config.get("service_node.basic.app");
+    this._app_version = config.get("service_node.basic.app_version");
+    this._service = config.get("service_node.basic.service");
+    this._version = config.get("service_node.basic.service_version");
     this._enabled = 0;
+    this._path = ROOT + "/" + this._app;
     this._server = config.get("service_node.server");
     if(!this._server.protocal) this._server.protocal = "http";
     if(!this._server.host){
@@ -85,9 +88,13 @@ async function Node(options) {
     }
     if(!this._server.root) this._server.root = "/";
     this._url = `${this._server.protocal}://${this._server.host}:${this._server.port}${this._server.root}`;
-    await this.connect();
-    await this.regToPool();
-    await this.reg();
+    logger.debug('NODE DATA: ', JSON.stringify(this))
+    var prms = this.connect();
+    prms.then(this.regToPool.bind(this))
+        .then(this.reg.bind(this))
+        .catch((reason) => {
+            logger.error('New Node failed: %s', JSON.stringify(reason));
+        });
     return this;
 }
 
@@ -109,15 +116,18 @@ Node.prototype.status = function(){
  *  Connect to the zk server
  */
 Node.prototype.connect = function(){
+    logger.debug('connecting')
     var self = this;
     return new Promise((resolve, reject) => {
         var resoled = false;
         client.connect();
         client.once('connected',()=>{
+            logger.debug('Connected')
             resolve();
         });
         client.once('disconnected',()=>{
             // 断开连接之后自动重连
+            logger.debug('disconnected')
             this.connect();
         });
         var timeout = config.get("service_node.storage.options.zk.timeout");
@@ -130,26 +140,48 @@ Node.prototype.connect = function(){
 /**
  * 注册到服务池
  */
-Node.prototype.regToPool = async function(){
-    client.mkdirp(
-        self._path, new Buffer(JSON.stringify({
-            url: self._url,
-            enabled: 0,
-            version: self._version
-        })),
-        zookeeper.CreateMode.EPHEMERAL, function(err, p){
-        
-    })
+Node.prototype.regToPool = function(){
+    logger.debug('regToPool')
+    var self = this;
+    
+    return new Promise((resolve, reject) => {
+        logger.debug('regToPool in promise')
+        client.mkdirp(
+            self._path,zookeeper.CreateMode.PERSISTENT,
+            function(err, p){
+                logger.debug('mkdirp',p);
+                if(err){
+                    reject('app node creation failed', self._path);
+                    return;
+                }
+                client.create(self._path + "/" + self._id, new Buffer(JSON.stringify({
+                    url: self._url,
+                    enabled: self._enabled,
+                    version: self._version
+                })),zookeeper.CreateMode.EPHEMERAL,function(err0){
+                    if(err){
+                        reject('service node creation failed', self._path + "/" + self._id);
+                        return;
+                    }
+                    resolve();
+                })
+            }
+        )
+    });
 }
 
 /**
  * 注册到服务注册树
  */
-Node.prototype.reg = async function(){
+Node.prototype.reg = function(){
+    logger.debug('reg')
+    var self = this;
+    return new Promise((resolve, reject) => {
+        resolve();
+    });
 
 }
 
-module.exports = Node;
 _.forEach(SERVICE_STATUS, function (key) {
   module.exports[key] = SERVICE_STATUS[key];
 });

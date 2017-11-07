@@ -1,11 +1,11 @@
 {
     "service_node":{
         "basic":{
-            "app":"",
-            "app_version":"",
-            "service":"",
-            "service_version":"",
-            "weight":""
+            "app":"base1",
+            "app_version":"1.0.0",
+            "service":"common",
+            "service_version":"0.0.1",
+            "weight":"10"
         },
         "storage": {
             "name":"zk",
@@ -14,7 +14,7 @@
                     "url":"192.168.8.3:2181,192.168.8.3:2182",
                     "timeout":3000
                 },
-                "root":"/TEST_MICRO"
+                "root":"/TEST_MICRO/services"
             }
         },
         // server configurations
