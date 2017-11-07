@@ -108,6 +108,9 @@ Node.prototype.status = function(){
     return this._status;
 }
 
+/**
+ * 连接到某个存储服务，需要在具体的存储中实现
+ */
 Node.prototype.connect = function(){
     logger.debug('connect')
     var self = this;
@@ -117,6 +120,9 @@ Node.prototype.connect = function(){
     });
 }
 
+/**
+ * 服务添加到服务池，需要在具体的storage中实现
+ */
 Node.prototype.regToPool = function(){
     logger.debug('regToPool')
     var self = this;
@@ -126,14 +132,19 @@ Node.prototype.regToPool = function(){
     });
 }
 
+/**
+ * 公共服务注册实现
+ */
 Node.prototype.reg = function(){
     logger.debug('reg')
     var self = this;
     
     return new Promise((resolve, reject) => {
         logger.debug('reg in promise')
+        resolve();
     });
 }
+
 module.exports = Node
 
 _.forEach(SERVICE_STATUS, function (key) {

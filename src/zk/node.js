@@ -124,4 +124,17 @@ Node.prototype.regToPool = function(){
     });
 }
 
+// 先备份父类函数
+Node.prototype.oldreg = Node.prototype.reg;
+Node.prototype.reg = function(){
+    logger.debug('reg in zk')
+    var self = this;
 
+    return new Promise((resolve, reject) => {
+        var prms = self.oldreg();
+        prms.then(function(){
+            logger.debug('reg in promise in zk')
+            resolve();
+        })
+    });
+}
