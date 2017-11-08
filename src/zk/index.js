@@ -48,6 +48,7 @@ exports.init = async function(options){
  * @param {Object} options 
  */
 function Node(options) {
+    
     this.init.bind(this)(options);
     return this
 }
@@ -127,6 +128,11 @@ Node.prototype.regToPool = function(){
 // 先备份父类函数
 // NOTE: 备份函数名必须是oldreg，否则在自动重试注册的时候，会导致promise里面的值被执行多次
 Node.prototype.oldreg = Node.prototype.reg;
+
+/**
+ * 把微服务注册到服务注册树
+ * 已经有默认的实现，特殊情况才需要扩展
+ */
 Node.prototype.reg = function(options){
     logger.debug('reg in zk')
     var self = this;

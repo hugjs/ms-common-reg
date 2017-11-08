@@ -23,17 +23,17 @@
             "host":"",
             "port":20002,
             "root":""
-        },
-        // log configurations
-        "log":{
-            "appenders": {
-              "console":{"type": "console"}
-            },
-            "categories": { "default": { "appenders": ["console"], "level": "debug" } }
         }
     },
     "reg_svc":{
         "path":"http://localhost:20001/regist"
+    },
+    // log configurations
+    "log":{
+        "appenders": {
+          "console":{"type": "console"}
+        },
+        "categories": { "default": { "appenders": ["console"], "level": "debug" } }
     },
     // system paths
     "path":{

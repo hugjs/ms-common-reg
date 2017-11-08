@@ -4,7 +4,7 @@
 var config = require('config')
 var noop = function(){}
 var path = require('path');
-const logger = require('@log4js-node/log4js-api').getLogger("servicenode");
+const logger = require('@log4js-node/log4js-api').getLogger("node");
 var Events  = require('events');
 var Util    = require('util');
 var _       = require('lodash');
@@ -34,17 +34,6 @@ var eventbus = new Events.EventEmitter();
 
 Util.inherits(Node, Events.EventEmitter);
 
-
-/**
- * 初始化服务列表对象，如果已经存在就直接返回
- */
-exports.init = function(options){
-    if( !Node.singleton ) {
-        Node.singleton = new Node(options);
-    }
-    return Node.singleton;
-}
-
 /**
  * 服务节点封装
  * 
@@ -53,47 +42,58 @@ exports.init = function(options){
 function Node(options) {
 }
 
-Node.prototype.init = function(options){
-    Events.EventEmitter.call(this);
-    var basicCfg = config.get("service_node.basic");
+Node.prototype.init = async function(options){
+    var self = this;
+    Events.EventEmitter.call(self);
+    var basicCfg = _.cloneDeep(config.get("service_node.basic"));
     // 数据校验
     var keys = ['app','app_version','service','service_version'];
     if(_.pick(_.omitBy(basicCfg,_.isNil),keys).length < keys.length){
         throw new Error(100000,"配置文件参数错误")
     }
-    this._id = cuid();
-    this._status = SERVICE_STATUS.INIT;
-    this._url = "";
-    this._app = basicCfg.app;
-    this._app_version = basicCfg.app_version;
-    this._service = basicCfg.service;
-    this._version = basicCfg.service_version;
-    this._enabled = 0;
-    this._path = ROOT + "/" + this._app;
-    this._server = config.get("service_node.server");
-    if(!this._server.protocal) this._server.protocal = "http";
-    if(!this._server.host){
-        this._server.host = internalIp.v4.sync();
-    }
-    if(!this._server.port){
-        switch(this._server.protocal){
-            case 'https':
-                this._server.port = 443;
-                break;
-            default:
-                this._server.port = 80;
+    self._id = cuid();
+    self._status = SERVICE_STATUS.INIT;
+    self._url = "";
+    self._app = basicCfg.app;
+    self._app_version = basicCfg.app_version;
+    self._service = basicCfg.service;
+    self._version = basicCfg.service_version;
+    self._enabled = 0;
+    self._path = ROOT + "/" + self._app;
+    self._server = _.cloneDeep(config.get("service_node.server"));
+    if(!self._server.protocal) self._server.protocal = "http";
+    if(_.isEmpty(self._server.host)){
+        try{
+            self._server.host = await internalIp.v4();
+        }catch(e){
+            logger.error('Can not get the internal ip address');
+            self._server.host = 'localhost';
         }
     }
-    if(!this._server.root) this._server.root = "/";
-    this._url = `${this._server.protocal}://${this._server.host}:${this._server.port}${this._server.root}`;
-    logger.debug('NODE DATA: ', JSON.stringify(this))
-    var prms = this.connect();
-    prms.then(this.regToPool.bind(this))
-        .then(this.reg.bind(this))
-        .catch((reason) => {
-            logger.error('New Node failed: %s', JSON.stringify(reason));
-        });
-    return this;
+    if(!_.isInteger(_.parseInt(self._server.port))){
+        switch(self._server.protocal){
+            case 'https':
+                self._server.port = 443;
+                break;
+            default:
+                self._server.port = 80;
+        }
+    }
+    if(_.isEmpty(self._server.root)) self._server.root = "/";
+    self._url = `${self._server.protocal}://${self._server.host}:${self._server.port}${self._server.root}`;
+    logger.debug('NODE DATA: ', JSON.stringify(self))
+    try{
+        await self.connect();
+        await self.regToPool();
+        await self.reg();
+        self._status = SERVICE_STATUS.STANDBY;
+        logger.debug('Emitting service ready event');
+        module.exports.emit('ready');
+        
+    }catch(e){
+        logger.error('New Node failed: %o', e);
+    }
+    return self;
 }
 
 
@@ -193,4 +193,11 @@ module.exports = Node
 
 _.forEach(SERVICE_STATUS, function (key) {
   module.exports[key] = SERVICE_STATUS[key];
+});
+
+/**
+ * 使得module对象支持时间的监听
+ */
+require('./events').EVENTS.forEach(function (key) {
+    module.exports[key] = eventbus[key];
 });
