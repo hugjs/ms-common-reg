@@ -7,10 +7,12 @@ var path = require('path');
 const logger = require('@log4js-node/log4js-api').getLogger("servicenode");
 var Events  = require('events');
 var Util    = require('util');
-
 var _       = require('lodash');
+
+var request = require('request');
 var cuid = require('cuid');
 const internalIp = require('internal-ip');
+const MAX_RETRY_TIME = 5;
 
 
 // Service Status
@@ -53,18 +55,19 @@ function Node(options) {
 
 Node.prototype.init = function(options){
     Events.EventEmitter.call(this);
+    var basicCfg = config.get("service_node.basic");
     // 数据校验
     var keys = ['app','app_version','service','service_version'];
-    if(_.pick(_.omitBy(options,_.isNil),keys).length < keys.length){
-        throw new Error(100000,"参数错误")
+    if(_.pick(_.omitBy(basicCfg,_.isNil),keys).length < keys.length){
+        throw new Error(100000,"配置文件参数错误")
     }
     this._id = cuid();
     this._status = SERVICE_STATUS.INIT;
     this._url = "";
-    this._app = config.get("service_node.basic.app");
-    this._app_version = config.get("service_node.basic.app_version");
-    this._service = config.get("service_node.basic.service");
-    this._version = config.get("service_node.basic.service_version");
+    this._app = basicCfg.app;
+    this._app_version = basicCfg.app_version;
+    this._service = basicCfg.service;
+    this._version = basicCfg.service_version;
     this._enabled = 0;
     this._path = ROOT + "/" + this._app;
     this._server = config.get("service_node.server");
@@ -135,13 +138,54 @@ Node.prototype.regToPool = function(){
 /**
  * 公共服务注册实现
  */
-Node.prototype.reg = function(){
-    logger.debug('reg')
+Node.prototype.reg = function(options){
+    logger.debug('reg', options)
+    if(!options) options = {retry:0};
+    ++options.retry;
     var self = this;
     
     return new Promise((resolve, reject) => {
-        logger.debug('reg in promise')
-        resolve();
+        logger.debug('reg in Promise', options);
+        request.post({
+            url:config.get("reg_svc.path"), 
+            header:{'content-type': 'application/json'},
+            body:JSON.stringify({
+                a:self._app,
+                av:self._app_version,
+                s:self._service, 
+                sid:self._id, 
+                sv:self._version
+            })
+        },function(err, resp, body){
+            logger.debug('reg resp: ', body)
+            var retry = function(err){
+                if(options.retry <= MAX_RETRY_TIME){
+                    setTimeout(function(){
+                        var pms = typeof self.oldreg === 'function'?self.oldreg(options):self.reg(options);
+                        pms.then(function(){resolve()})
+                            .catch(function(e){reject(e)});
+                    },1000*Math.pow(2,options.retry));
+                    logger.info('Wait for %s seconds and retry.', Math.pow(2,options.retry));
+                }else{
+                    reject(err);
+                }
+            }
+            if(err){
+                retry(err);
+                return;
+            }
+            try{
+                var bodyObj = JSON.parse(body);
+                if(bodyObj.status == 0) {
+                    logger.info('service registed to the reg tree successfully.')
+                    resolve();
+                }
+                else if(bodyObj.status == 10 ) retry(bodyObj);
+                else reject(bodyObj);
+            }catch(e){
+                reject(err);
+            }
+        })
     });
 }
 

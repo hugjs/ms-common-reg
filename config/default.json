@@ -33,9 +33,7 @@
         }
     },
     "reg_svc":{
-        "host":"",
-        "port":"",
-        "path":""
+        "path":"http://localhost:20001/regist"
     },
     // system paths
     "path":{

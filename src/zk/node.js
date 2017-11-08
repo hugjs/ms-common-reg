@@ -125,13 +125,14 @@ Node.prototype.regToPool = function(){
 }
 
 // 先备份父类函数
+// NOTE: 备份函数名必须是oldreg，否则在自动重试注册的时候，会导致promise里面的值被执行多次
 Node.prototype.oldreg = Node.prototype.reg;
-Node.prototype.reg = function(){
+Node.prototype.reg = function(options){
     logger.debug('reg in zk')
     var self = this;
 
     return new Promise((resolve, reject) => {
-        var prms = self.oldreg();
+        var prms = self.oldreg(options);
         prms.then(function(){
             logger.debug('reg in promise in zk')
             resolve();
