@@ -12,7 +12,9 @@ var _       = require('lodash');
 var zookeeper = require('node-zookeeper-client');
 
 var pNode = require('../node');
-var client = zookeeper.createClient(config.get("service_node.storage.options.zk.url"));
+var zkOptions = config.has("service_node.storage.options.zk.options")?config.get("service_node.storage.options.zk.options"):null;
+logger.debug('zkOptions:', zkOptions)
+var client = zookeeper.createClient(config.get("service_node.storage.options.zk.url"), zkOptions);
 /**
  * 全局的事件通过这个事件管理对象管理
  * 事件的数据，会包含相对多的信息
@@ -85,10 +87,10 @@ Node.prototype.connect = function(){
             logger.debug('disconnected')
             this.connect();
         });
-        var timeout = config.get("service_node.storage.options.zk.timeout");
+        var timeout = config.has("service_node.storage.options.zk.timeout")?config.get("service_node.storage.options.zk.timeout"):3000;
         setTimeout(function(){
             (client && client.getState() == zookeeper.State.SYNC_CONNECTED) ||  reject();
-        },timeout?timeout:3000)
+        },timeout)
       });
 }
 
@@ -144,4 +146,13 @@ Node.prototype.reg = function(options){
             resolve();
         })
     });
+}
+
+Node.prototype.clean = function(){
+    var self = this;
+    client.remove(self._path + "/" + self._id,-1,function(err){
+        if(err)logger.error(err);
+        else logger.info("cleaned");
+
+    })
 }

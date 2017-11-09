@@ -31,6 +31,9 @@
             "options":{
                 "zk":{                  // zookeeper的链接信息 storage.name=zk时必填
                     "url":"192.168.8.3:2181,192.168.8.3:2182",
+                    "options":{
+                        "sessionTimeout": 2000 // 必填，决定临时节点失效删除周期
+                    },
                     "timeout":3000
                 },
                 "root":"/TEST_MICRO/services"       // 服务注册表中微服务池的根路径 必填
