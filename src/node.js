@@ -92,6 +92,7 @@ Node.prototype.init = async function(options){
         
     }catch(e){
         logger.error('New Node failed: %o', e);
+        process.exit();
     }
     return self;
 }
@@ -146,6 +147,60 @@ Node.prototype.reg = function(options){
     
     return new Promise((resolve, reject) => {
         logger.debug('reg in Promise', options);
+        request.post({
+            url:config.get("reg_svc.path"), 
+            header:{'content-type': 'application/json'},
+            body:JSON.stringify({
+                a:self._app,
+                av:self._app_version,
+                s:self._service, 
+                sid:self._id, 
+                sv:self._version
+            })
+        },function(err, resp, body){
+            logger.debug('reg resp: ', body)
+            var retry = function(err){
+                if(options.retry <= MAX_RETRY_TIME){
+                    setTimeout(function(){
+                        var pms = typeof self.oldreg === 'function'?self.oldreg(options):self.reg(options);
+                        pms.then(function(){resolve()})
+                            .catch(function(e){reject(e)});
+                    },1000*Math.pow(2,options.retry));
+                    logger.info('Wait for %s seconds and retry.', Math.pow(2,options.retry));
+                }else{
+                    reject(err);
+                }
+            }
+            if(err){
+                retry(err);
+                return;
+            }
+            try{
+                var bodyObj = JSON.parse(body);
+                if(bodyObj.status == 0) {
+                    logger.info('service registed to the reg tree successfully.')
+                    resolve();
+                }
+                else if(bodyObj.status == 10 ) retry(bodyObj);
+                else reject(bodyObj);
+            }catch(e){
+                reject(err);
+            }
+        })
+    });
+}
+
+/**
+ * 公共服务注册实现
+ */
+Node.prototype.enable = function(options){
+    logger.debug('enable', options)
+    if(!options) options = {retry:0};
+    ++options.retry;
+    var self = this;
+    
+    return new Promise((resolve, reject) => {
+        logger.debug('enable in Promise', options);
         request.post({
             url:config.get("reg_svc.path"), 
             header:{'content-type': 'application/json'},

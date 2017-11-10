@@ -1,8 +1,8 @@
 {
     "service_node":{
         "basic":{
-            "app":"base1",
-            "app_version":"1.0.1",
+            "app":"base",
+            "app_version":"1.0.0",
             "service":"common",
             "service_version":"0.0.1",
             "weight":"10"
