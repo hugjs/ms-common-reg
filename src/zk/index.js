@@ -29,9 +29,9 @@ Util.inherits(Node, pNode);
 /**
  * 服务节点对象，如果已经存在就直接返回
  */
-exports.init = async function(options){
+exports.init = function(options){
     if( !Node.singleton ) {
-        Node.singleton = await new Node(options);
+        Node.singleton = new Node(options);
     }
     return Node.singleton;
 }
@@ -49,8 +49,8 @@ exports.init = async function(options){
  * @param {Object} options 
  */
 function Node(options) {
-    
-    this.init.bind(this)(options);
+    this.init.bind(this)(options)
+        .catch(function(e){logger.error(e)});
     return this
 }
 

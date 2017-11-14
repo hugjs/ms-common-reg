@@ -12,7 +12,16 @@ logger.info('Starting the service node......')
 
 pNode.on('ready',function(){
     logger.info('Service Ready.....');
+    if(config.has('service_node.basic.activate')&& config.get('service_node.basic.activate')){
+        strg.init().activate();
+    }
+
     // require("./app.js")
     // logger.info('Web API Listening on Port %s .....', config.get("server.port"));
 })
+
 strg.init(config.get('service_node.storage.options'))
+
+module.exports = {
+    node: pNode,
+}

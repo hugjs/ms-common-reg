@@ -60,6 +60,9 @@ Node.prototype.init = async function(options){
     self._version = basicCfg.service_version;
     self._enabled = 0;
     self._path = ROOT + "/" + self._app;
+    if(!config.has("service_node.server")){
+        throw new Error('service_node.server must be configured')
+    }
     self._server = _.cloneDeep(config.get("service_node.server"));
     if(!self._server.protocal) self._server.protocal = "http";
     if(_.isEmpty(self._server.host)){
@@ -147,8 +150,12 @@ Node.prototype.reg = function(options){
     
     return new Promise((resolve, reject) => {
         logger.debug('reg in Promise', options);
+        if(!config.has('reg_svc.path.reg')){
+            reject(new Error('reg_svc.path.reg not configured'));
+            return;
+        }
         request.post({
-            url:config.get("reg_svc.path"), 
+            url:config.get("reg_svc.path.reg"), 
             header:{'content-type': 'application/json'},
             body:JSON.stringify({
                 a:self._app,
@@ -193,16 +200,20 @@ Node.prototype.reg = function(options){
 /**
  * 公共服务注册实现
  */
-Node.prototype.enable = function(options){
-    logger.debug('enable', options)
+Node.prototype.activate = function(options){
+    logger.debug('activate', options)
     if(!options) options = {retry:0};
     ++options.retry;
     var self = this;
     
     return new Promise((resolve, reject) => {
         logger.debug('enable in Promise', options);
+        if(!config.has('reg_svc.path.activate')){
+            reject(new Error('reg_svc.path.activate not configured'));
+            return;
+        }
         request.post({
-            url:config.get("reg_svc.path"), 
+            url:config.get("reg_svc.path.activate"), 
             header:{'content-type': 'application/json'},
             body:JSON.stringify({
                 a:self._app,
