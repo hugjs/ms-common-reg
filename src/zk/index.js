@@ -11,9 +11,12 @@ var _       = require('lodash');
 
 var zookeeper = require('node-zookeeper-client');
 
+var zkhelper = require('./help');
 var pNode = require('../node');
 var zkOptions = config.has("service_node.storage.options.zk.options")?config.get("service_node.storage.options.zk.options"):null;
 var client = zookeeper.createClient(config.get("service_node.storage.options.zk.url"), zkOptions);
+zkhelper.addlogs(client);
+
 /**
  * 全局的事件通过这个事件管理对象管理
  * 事件的数据，会包含相对多的信息
@@ -77,20 +80,17 @@ Node.prototype.connect = function(){
     return new Promise((resolve, reject) => {
         var resoled = false;
         client.connect();
-        client.on('connected',()=>{
+        client.once('connected',()=>{
             logger.debug('Connected')
             resolve();
-            setInterval(()=>{client.exists("/",null, ()=>{})}, _.has(zkOptions,'sessionTimeout')?zkOptions.sessionTimeout:2000);
         });
         client.on('disconnected',async ()=>{
             // 断开连接之后自动重连
-            logger.debug('disconnected')
-            process.exit();
-            try{
-                await this.connect();
-            }catch(e){
-                logger.error(e);
-            }
+            logger.error('disconnected', client)
+        });
+        client.on('expired', function () {
+            logger.error('zkclient expired')
+            process.exit()
         });
         var timeout = config.has("service_node.storage.options.zk.timeout")?config.get("service_node.storage.options.zk.timeout"):3000;
         setTimeout(function(){
