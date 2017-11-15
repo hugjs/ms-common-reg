@@ -34,13 +34,13 @@ service_node:
                     sessionTimeout: 2000    # 必填，决定临时节点失效删除周期
                 timeout: 3000
             root: /TEST_MICRO/services      # 服务注册表中微服务池的根路径 必填
-    # server configurations
-    # 本服务的服务端口信息
-    server:     
-        protocal: http
-        #host: 
-        port: 20002
-        #root:                  # 微服务监听根目录
+# server configurations
+# 本服务的服务端口信息
+server:     
+    protocal: http
+    #host: 
+    port: 20002
+    #root:                  # 微服务监听根目录
 # 服务注册表的注册接口配置信息 必填
 reg_svc:    
     path: 

@@ -60,10 +60,10 @@ Node.prototype.init = async function(options){
     self._version = basicCfg.service_version;
     self._enabled = 0;
     self._path = ROOT + "/" + self._app;
-    if(!config.has("service_node.server")){
-        throw new Error('service_node.server must be configured')
+    if(!config.has("server")){
+        throw new Error('server must be configured')
     }
-    self._server = _.cloneDeep(config.get("service_node.server"));
+    self._server = _.cloneDeep(config.get("server"));
     if(!self._server.protocal) self._server.protocal = "http";
     if(_.isEmpty(self._server.host)){
         try{

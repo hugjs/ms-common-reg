@@ -15,12 +15,12 @@ service_node:
                     sessionTimeout: 2000 # 必填，决定临时节点失效删除周期
                 timeout: 3000
             root: /TEST_MICRO/services
-    # server configurations
-    server:
-        protocal: http
-        #host: 
-        port: 20002
-        #root: 
+# server configurations
+server:
+    protocal: http
+    #host: 
+    port: 20002
+    #root: 
 reg_svc:
     path: 
         reg: http://localhost:20001/regist
