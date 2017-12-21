@@ -81,15 +81,10 @@ Node.prototype.connect = function(){
         var resoled = false;
         client.connect();
         client.once('connected',()=>{
-            logger.debug('Connected')
             resolve();
         });
-        client.on('disconnected',async ()=>{
-            // 断开连接之后自动重连
-            logger.error('disconnected', client)
-        });
         client.on('expired', function () {
-            logger.error('zkclient expired')
+            logger.error('zk session expired reboot needed...')
             process.exit()
         });
         var timeout = config.has("service_node.storage.options.zk.timeout")?config.get("service_node.storage.options.zk.timeout"):3000;
